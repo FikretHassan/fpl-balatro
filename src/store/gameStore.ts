@@ -460,13 +460,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     const allCombos = detectAllCombos(playedCards)
     const result = calculateScore(playedCards, combo, activeJokers, comboLevels, currentBossEffect, allCombos)
 
-    const newScore = currentScore + result.finalScore
     const remainingHand = hand.filter((_, i) => !selectedIndices.includes(i))
 
     set({
       phase: 'scoring',
       lastScoringResult: result,
-      currentScore: newScore,
       hand: remainingHand,
       discardPile: [...discardPile, ...playedCards],
       selectedIndices: [],
@@ -475,9 +473,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   finishScoring: () => {
-    const { currentScore, scoreTarget, playsRemaining, hand, deck, discardPile } = get()
+    const { currentScore, scoreTarget, playsRemaining, hand, deck, discardPile, lastScoringResult } = get()
 
-    if (currentScore >= scoreTarget) {
+    const pendingScore = lastScoringResult ? lastScoringResult.finalScore : 0
+    const newScore = currentScore + pendingScore
+    set({ currentScore: newScore })
+
+    if (newScore >= scoreTarget) {
       set({ phase: 'blind_complete' })
       return
     }

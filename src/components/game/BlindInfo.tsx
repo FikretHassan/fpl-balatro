@@ -2,6 +2,7 @@
 
 import { BlindType, LeagueOpponent, BossEffect } from '@/types/game'
 import { TOTAL_ANTES } from '@/lib/game/constants'
+import { useEffect, useRef, useState } from 'react'
 
 interface BlindInfoProps {
   ante: number
@@ -24,8 +25,41 @@ const BLIND_COLORS: Record<BlindType, string> = {
   boss: 'text-mult',
 }
 
+function useAnimatedScore(target: number, duration = 600) {
+  const [display, setDisplay] = useState(target)
+  const prevRef = useRef(target)
+
+  useEffect(() => {
+    const from = prevRef.current
+    const to = target
+    prevRef.current = to
+
+    if (from === to) return
+
+    const start = performance.now()
+    let raf: number
+
+    const tick = (now: number) => {
+      const elapsed = now - start
+      const t = Math.min(elapsed / duration, 1)
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - t, 3)
+      setDisplay(Math.round(from + (to - from) * eased))
+      if (t < 1) {
+        raf = requestAnimationFrame(tick)
+      }
+    }
+
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [target, duration])
+
+  return display
+}
+
 export default function BlindInfo({ ante, blind, scoreTarget, currentScore, bossOpponent, bossEffect }: BlindInfoProps) {
-  const progress = Math.min((currentScore / scoreTarget) * 100, 100)
+  const displayScore = useAnimatedScore(currentScore)
+  const progress = Math.min((displayScore / scoreTarget) * 100, 100)
 
   return (
     <div className="text-center">
@@ -59,7 +93,7 @@ export default function BlindInfo({ ante, blind, scoreTarget, currentScore, boss
 
       {/* Score / Target */}
       <div className="mb-2">
-        <span className="text-3xl font-bold tabular-nums">{currentScore.toLocaleString()}</span>
+        <span className="text-3xl font-bold tabular-nums">{displayScore.toLocaleString()}</span>
         <span className="text-foreground/30 text-lg"> / {scoreTarget.toLocaleString()}</span>
       </div>
 
