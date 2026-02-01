@@ -1,26 +1,76 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Balatro felt table + FPL identity */
+  --background: #0b0e14;
+  --foreground: #e8e6e3;
+  --accent: #00ff87;        /* FPL green */
+  --accent-2: #37003c;      /* FPL purple */
+  --surface: #131a24;
+  --surface-2: #1a2332;
+
+  /* Position colors — FPL official */
+  --gkp: #ebba1a;
+  --def: #00ff87;
+  --mid: #05f0ff;
+  --fwd: #e8005a;
+
+  /* Scoring — Balatro core */
+  --chips: #4d9de0;
+  --mult: #e15554;
+
+  /* Rarity tiers — Balatro-inspired */
+  --tier-bronze: #cd7f32;
+  --tier-silver: #a8b4c0;
+  --tier-gold: #ffd700;
+  --tier-diamond: #00e5ff;
+
+  /* Joker rarity */
+  --rarity-common: #8a8a8a;
+  --rarity-uncommon: #4d9de0;
+  --rarity-rare: #9b59b6;
+  --rarity-legendary: #ffd700;
+
+  /* Felt table green tint */
+  --felt: #0d1f17;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-gkp: var(--gkp);
+  --color-def: var(--def);
+  --color-mid: var(--mid);
+  --color-fwd: var(--fwd);
+  --color-chips: var(--chips);
+  --color-mult: var(--mult);
+  --color-felt: var(--felt);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@keyframes joker-trigger {
+  0%, 100% { transform: translateX(0) scale(1); }
+  10% { transform: translateX(-3px) rotate(-2deg) scale(1.08); }
+  20% { transform: translateX(3px) rotate(2deg) scale(1.08); }
+  30% { transform: translateX(-2px) rotate(-1deg) scale(1.05); }
+  40% { transform: translateX(2px) rotate(1deg) scale(1.05); }
+  50% { transform: translateX(-1px) scale(1.03); }
+  60% { transform: translateX(1px) scale(1.03); }
+  70% { transform: translateX(0) scale(1); }
+}
+
+.joker-active {
+  animation: joker-trigger 0.6s ease-in-out;
+  animation-iteration-count: 3;
 }
