@@ -32,82 +32,82 @@ function determineEffect(source: JokerSource): {
   // Legendary — massive hauls
   if (source.goals >= 3) {
     return {
-      effectType: 'mult_mult', effectValue: 1.5, condition: 'has_scorer',
+      effectType: 'mult_mult', effectValue: 2.0, condition: 'has_scorer',
       name: `${source.webName} GW${source.gameweek}`,
-      description: `Hat-trick legend! ×1.5 mult when a scorer is played`,
+      description: `Hat-trick legend! ×2.0 mult when a scorer is played`,
     }
   }
   if (source.points >= 15) {
     return {
-      effectType: 'mult_mult', effectValue: 1.5, condition: 'has_scorer',
+      effectType: 'mult_mult', effectValue: 1.75, condition: 'has_scorer',
       name: `${source.webName} GW${source.gameweek}`,
-      description: `${source.points}pt haul! ×1.5 mult when a scorer is played`,
+      description: `${source.points}pt haul! ×1.75 mult when a scorer is played`,
     }
   }
 
   // Captain picks
   if (source.wasCaptain && source.points >= 10) {
     return {
-      effectType: 'mult_mult', effectValue: 1.3, condition: 'has_fwd',
+      effectType: 'mult_mult', effectValue: 1.5, condition: 'has_fwd',
       name: `Cpt ${source.webName} GW${source.gameweek}`,
-      description: `Captaincy masterclass! ×1.3 mult when FWD played`,
+      description: `Captaincy masterclass! ×1.5 mult when FWD played`,
     }
   }
   if (source.wasCaptain) {
     return {
-      effectType: 'add_mult', effectValue: 2, condition: 'always',
+      effectType: 'add_mult', effectValue: 3, condition: 'always',
       name: `Cpt ${source.webName} GW${source.gameweek}`,
-      description: `Captain pick: +2 mult`,
+      description: `Captain pick: +3 mult`,
     }
   }
 
   // Goal scorers
   if (source.goals >= 2) {
     return {
-      effectType: 'add_mult', effectValue: 3, condition: 'has_fwd',
+      effectType: 'add_mult', effectValue: 4, condition: 'has_fwd',
       name: `${source.webName} GW${source.gameweek}`,
-      description: `Brace! +3 mult when FWD played`,
+      description: `Brace! +4 mult when FWD played`,
     }
   }
   if (source.goals >= 1) {
     return {
-      effectType: 'add_mult', effectValue: 2, condition: 'has_scorer',
+      effectType: 'add_mult', effectValue: 3, condition: 'has_scorer',
       name: `${source.webName} GW${source.gameweek}`,
-      description: `Goal scorer: +2 mult when a scorer is played`,
+      description: `Goal scorer: +3 mult when a scorer is played`,
     }
   }
 
   // Assists
   if (source.assists >= 2) {
     return {
-      effectType: 'add_mult', effectValue: 2, condition: 'has_mid',
+      effectType: 'add_mult', effectValue: 3, condition: 'has_mid',
       name: `${source.webName} GW${source.gameweek}`,
-      description: `Assist king: +2 mult when MID played`,
+      description: `Assist king: +3 mult when MID played`,
     }
   }
   if (source.assists >= 1) {
     return {
-      effectType: 'add_chips', effectValue: 15, condition: 'has_mid',
+      effectType: 'add_chips', effectValue: 20, condition: 'has_mid',
       name: `${source.webName} GW${source.gameweek}`,
-      description: `Playmaker: +15 chips when MID played`,
+      description: `Playmaker: +20 chips when MID played`,
     }
   }
 
   // Clean sheets
   if (source.cleanSheets > 0) {
     return {
-      effectType: 'add_chips', effectValue: 20, condition: 'has_def_or_gkp',
+      effectType: 'add_chips', effectValue: 25, condition: 'has_def_or_gkp',
       name: `${source.webName} GW${source.gameweek}`,
-      description: `Clean sheet: +20 chips when DEF/GKP played`,
+      description: `Clean sheet: +25 chips when DEF/GKP played`,
     }
   }
 
   // Bonus magnets
   if (source.bonus >= 3) {
     return {
-      effectType: 'add_chips', effectValue: 10, condition: 'always',
+      effectType: 'add_chips', effectValue: 15, condition: 'always',
       name: `${source.webName} GW${source.gameweek}`,
-      description: `Max bonus! +10 chips`,
+      description: `Max bonus! +15 chips`,
     }
   }
 

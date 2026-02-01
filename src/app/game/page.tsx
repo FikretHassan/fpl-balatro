@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useCallback, useState } from 'react'
+import { useEffect, useMemo, useCallback, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useGameStore } from '@/store/gameStore'
 import PlayerCard from '@/components/cards/PlayerCard'
@@ -24,6 +24,7 @@ export default function GamePage() {
     availableGWs, activeJokers, shopJokers, isLoading,
     currentBossOpponent, currentBossEffect,
     leagueName, usesLeagueMode, shopItems,
+    gameMode, managerProgress, lastUnlockedGW,
   } = store
 
   const positionGroups = useMemo(() => {
@@ -47,6 +48,18 @@ export default function GamePage() {
     store.finishScoring()
   }, [store])
 
+  // Record run result when game ends
+  const recordedRef = useRef(false)
+  useEffect(() => {
+    if ((phase === 'run_won' || phase === 'run_lost') && !recordedRef.current) {
+      recordedRef.current = true
+      store.recordRunResult(phase === 'run_won')
+    }
+    if (phase !== 'run_won' && phase !== 'run_lost') {
+      recordedRef.current = false
+    }
+  }, [phase, store])
+
   useEffect(() => {
     if (phase === 'loading' && availableGWs.length === 0) {
       router.push('/')
@@ -58,6 +71,14 @@ export default function GamePage() {
   // ===================== GW SELECT =====================
   if (phase === 'gw_select') {
     const { managerLeagues } = store
+    const unlockedSet = new Set(managerProgress?.unlockedGWs ?? [])
+    const gwsSorted = gameMode === 'roguelike'
+      ? [...availableGWs].sort((a, b) => b.points - a.points)
+      : availableGWs
+
+    // Stats
+    const totalWins = managerProgress?.runHistory.filter((r) => r.won).length ?? 0
+    const bestScore = managerProgress?.runHistory.reduce((max, r) => Math.max(max, r.finalScore), 0) ?? 0
 
     return (
       <main className="min-h-[100dvh] flex flex-col items-center px-3 py-6 max-w-lg mx-auto">
@@ -66,9 +87,38 @@ export default function GamePage() {
           <p className="text-foreground/50 text-xs">{managerName}</p>
         </div>
 
+        {/* Game mode toggle */}
+        <div className="w-full mb-4">
+          <p className="text-foreground/30 text-[10px] uppercase tracking-widest text-center mb-2">
+            Game Mode
+          </p>
+          <div className="flex gap-1.5 justify-center">
+            <button
+              onClick={() => store.setGameMode('roguelike')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                gameMode === 'roguelike'
+                  ? 'border-accent bg-accent/15 text-accent'
+                  : 'border-foreground/10 bg-surface text-foreground/50 hover:border-foreground/20'
+              }`}
+            >
+              Roguelike
+            </button>
+            <button
+              onClick={() => store.setGameMode('free')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                gameMode === 'free'
+                  ? 'border-accent bg-accent/15 text-accent'
+                  : 'border-foreground/10 bg-surface text-foreground/50 hover:border-foreground/20'
+              }`}
+            >
+              Free Run
+            </button>
+          </div>
+        </div>
+
         {/* League selection */}
         {managerLeagues.length > 0 && (
-          <div className="w-full mb-6">
+          <div className="w-full mb-4">
             <p className="text-foreground/30 text-[10px] uppercase tracking-widest text-center mb-2">
               League Mode
             </p>
@@ -101,7 +151,7 @@ export default function GamePage() {
         )}
 
         <p className="text-foreground/30 text-[10px] uppercase tracking-widest text-center mb-2">
-          Choose a gameweek
+          {gameMode === 'roguelike' ? 'Choose an unlocked gameweek' : 'Choose a gameweek'}
         </p>
 
         {isLoading && (
@@ -109,19 +159,37 @@ export default function GamePage() {
         )}
 
         <div className="w-full grid grid-cols-4 gap-1.5">
-          {availableGWs.map((gw) => (
-            <button
-              key={gw.event}
-              onClick={() => store.selectGameweek(gw.event)}
-              disabled={isLoading}
-              className="flex flex-col items-center gap-0.5 px-2 py-2 rounded-lg border border-foreground/10 bg-surface hover:border-accent hover:bg-accent/10 disabled:opacity-40 transition-all"
-            >
-              <span className="text-xs font-bold text-foreground/80">GW{gw.event}</span>
-              <span className="text-[10px] text-accent font-semibold">{gw.points}pts</span>
-              <span className="text-[8px] text-foreground/30">Rank {gw.rank?.toLocaleString()}</span>
-            </button>
-          ))}
+          {gwsSorted.map((gw) => {
+            const locked = gameMode === 'roguelike' && !unlockedSet.has(gw.event)
+            return (
+              <button
+                key={gw.event}
+                onClick={() => !locked && store.selectGameweek(gw.event)}
+                disabled={isLoading || locked}
+                className={`flex flex-col items-center gap-0.5 px-2 py-2 rounded-lg border transition-all ${
+                  locked
+                    ? 'border-foreground/5 bg-surface/50 opacity-40 cursor-not-allowed'
+                    : 'border-foreground/10 bg-surface hover:border-accent hover:bg-accent/10 disabled:opacity-40'
+                }`}
+              >
+                <span className="text-xs font-bold text-foreground/80">
+                  {locked ? '🔒' : ''} GW{gw.event}
+                </span>
+                <span className="text-[10px] text-accent font-semibold">{gw.points}pts</span>
+                <span className="text-[8px] text-foreground/30">Rank {gw.rank?.toLocaleString()}</span>
+              </button>
+            )
+          })}
         </div>
+
+        {/* Stats */}
+        {managerProgress && managerProgress.runHistory.length > 0 && (
+          <div className="mt-4 flex gap-4 text-[10px] text-foreground/40">
+            <span>Wins: <span className="text-accent font-semibold">{totalWins}</span></span>
+            <span>Best: <span className="text-chips font-semibold">{bestScore.toLocaleString()}</span></span>
+            <span>Runs: <span className="font-semibold">{managerProgress.runHistory.length}</span></span>
+          </div>
+        )}
 
         <button
           onClick={() => { store.resetGame(); router.push('/') }}
@@ -362,6 +430,20 @@ export default function GamePage() {
               <div className="px-4 py-3 flex-1 overflow-y-auto">
                 <ComboReference selectedCards={selectedCards} comboLevels={comboLevels} />
               </div>
+
+              {/* Abandon Run */}
+              <div className="px-4 py-3 border-t border-foreground/5">
+                <button
+                  onClick={() => {
+                    store.recordRunResult(false)
+                    store.resetGame()
+                    router.push('/')
+                  }}
+                  className="w-full py-2 rounded-lg text-xs font-semibold text-mult/70 hover:text-mult hover:bg-mult/10 transition-all"
+                >
+                  Abandon Run
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -472,7 +554,7 @@ export default function GamePage() {
             <p className="text-[10px] uppercase tracking-widest text-foreground/25 mb-3">
               Equipped Jokers
             </p>
-            <JokerDisplay jokers={activeJokers} />
+            <JokerDisplay jokers={activeJokers} onSell={(id) => store.sellJoker(id)} />
           </div>
         )}
 
@@ -494,8 +576,16 @@ export default function GamePage() {
         <p className="text-foreground/50 text-lg mb-1">
           Total Score: {(runScore + currentScore).toLocaleString()}
         </p>
-        <p className="text-foreground/30 mb-8">
+        <p className="text-foreground/30 mb-2">
           Coins: ${coins}
+        </p>
+        {lastUnlockedGW && (
+          <p className="text-chips font-semibold text-sm mb-2">
+            GW{lastUnlockedGW} Unlocked!
+          </p>
+        )}
+        <p className="text-foreground/20 text-xs mb-8">
+          GW{gameweek} &middot; Ante {currentAnte}
         </p>
         <button
           onClick={() => { store.resetGame(); router.push('/') }}

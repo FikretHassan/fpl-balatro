@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import {
   PlayerCard,
   GamePhase,
+  GameMode,
   BlindType,
   ManagerCard,
   ComboType,
@@ -10,7 +11,9 @@ import {
   LeagueOpponent,
   BossEffect,
   TacticCard,
+  ManagerProgress,
 } from '@/types/game'
+import { initProgress, recordRun, getNextUnlockGW } from '@/lib/progress'
 import { fetchBootstrap, fetchManagerPicks, fetchSquadGWStats, fetchManagerHistory, getFinishedGameweeks, fetchLeagueStandings, fetchLeagueOpponentsForGW } from '@/lib/fpl/api'
 import { FPLBootstrapResponse, FPLHistoryGW } from '@/lib/fpl/types'
 import { transformToPlayerCards } from '@/lib/fpl/transforms'
@@ -19,7 +22,7 @@ import { shuffleDeck, dealHand, drawCards, getScoreTarget, advanceBlind, calcula
 import { detectBestCombo, detectAllCombos } from '@/lib/game/combos'
 import { calculateScore } from '@/lib/game/scoring'
 import { applyTransferEffect, preRollTransfer } from '@/lib/game/transfers'
-import { HAND_SIZE, MAX_PLAYS, MAX_DISCARDS, MAX_SELECTED, MAX_MANAGER_CARDS, BOSS_EFFECTS, COMBO_DEFINITIONS, TRANSFER_CARDS, TACTIC_PRICE, TRANSFER_PRICE } from '@/lib/game/constants'
+import { HAND_SIZE, MAX_PLAYS, MAX_DISCARDS, MAX_SELECTED, MAX_MANAGER_CARDS, BOSS_EFFECTS, COMBO_DEFINITIONS, TRANSFER_CARDS, TACTIC_PRICE, TRANSFER_PRICE, JOKER_SELL_PRICES } from '@/lib/game/constants'
 import { saveRun, clearRun } from '@/lib/persistence'
 
 const SHOP_JOKER_COUNT = 3
@@ -60,6 +63,11 @@ interface GameState {
   currentBossOpponent: LeagueOpponent | null
   currentBossEffect: BossEffect | null
 
+  // Game mode & progress
+  gameMode: GameMode
+  managerProgress: ManagerProgress | null
+  lastUnlockedGW: number | null  // set after a win unlocks a new GW
+
   // UI state
   phase: GamePhase
   isLoading: boolean
@@ -97,6 +105,8 @@ interface GameState {
   lastScoringResult: ScoringResult | null
 
   // Actions
+  setGameMode: (mode: GameMode) => void
+  recordRunResult: (won: boolean) => void
   loadManager: (managerId: string) => Promise<void>
   setLeagueMode: (enabled: boolean, leagueId?: string) => void
   loadLeague: (gameweek: number) => Promise<void>
@@ -109,6 +119,7 @@ interface GameState {
   finishScoring: () => void
   nextBlind: () => void
   buyJoker: (jokerId: string) => void
+  sellJoker: (jokerId: string) => void
   buyShopItem: (itemIndex: number) => void
   skipShop: () => void
   resumeRun: (saved: Record<string, unknown>) => void
@@ -164,6 +175,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   currentBossOpponent: null,
   currentBossEffect: null,
 
+  // Game mode & progress
+  gameMode: 'roguelike' as GameMode,
+  managerProgress: null,
+  lastUnlockedGW: null,
+
   // UI
   phase: 'loading',
   isLoading: false,
@@ -199,6 +215,36 @@ export const useGameStore = create<GameState>((set, get) => ({
   lastScoringResult: null,
 
   // Actions
+
+  setGameMode: (mode: GameMode) => {
+    set({ gameMode: mode })
+  },
+
+  recordRunResult: (won: boolean) => {
+    const { managerId, gameweek, currentAnte, currentBlind, runScore, currentScore, managerProgress, gameMode, availableGWs } = get()
+    if (!managerId || !managerProgress) return
+
+    const record = {
+      gameweek,
+      won,
+      anteReached: currentAnte,
+      blindReached: currentBlind,
+      finalScore: runScore + (won ? currentScore : 0),
+      timestamp: Date.now(),
+    }
+
+    // Sort GWs by points desc for unlock ordering
+    const gwsSorted = [...availableGWs].sort((a, b) => b.points - a.points)
+    const nextGW = won && gameMode === 'roguelike'
+      ? getNextUnlockGW(managerProgress.unlockedGWs, gwsSorted)
+      : null
+
+    const updated = recordRun(managerId, record, nextGW)
+    set({
+      managerProgress: updated,
+      lastUnlockedGW: nextGW,
+    })
+  },
 
   loadManager: async (managerId: string) => {
     set({ isLoading: true, error: null })
@@ -241,13 +287,19 @@ export const useGameStore = create<GameState>((set, get) => ({
         .filter((c) => c.memberCount <= 50)
         .map((c) => c.league)
 
+      const mgrName = `${info.player_first_name} ${info.player_last_name}`
+      const highestGW = [...availableGWs].sort((a, b) => b.points - a.points)[0]
+      const progress = initProgress(managerId, mgrName, info.name, highestGW.event)
+
       set({
         managerId,
-        managerName: `${info.player_first_name} ${info.player_last_name}`,
+        managerName: mgrName,
         teamName: info.name,
         managerLeagues: classicLeagues,
         availableGWs,
         cachedBootstrap: bootstrap,
+        managerProgress: progress,
+        lastUnlockedGW: null,
         isLoading: false,
         phase: 'gw_select',
       })
@@ -564,6 +616,20 @@ export const useGameStore = create<GameState>((set, get) => ({
     })
   },
 
+  sellJoker: (jokerId: string) => {
+    const { activeJokers, coins } = get()
+    const joker = activeJokers.find((j) => j.id === jokerId)
+    if (!joker) return
+
+    const sellPrice = JOKER_SELL_PRICES[joker.rarity] ?? 2
+    const newActive = activeJokers.filter((j) => j.id !== jokerId)
+    set({
+      activeJokers: newActive,
+      managerCards: newActive,
+      coins: coins + sellPrice,
+    })
+  },
+
   buyShopItem: (itemIndex: number) => {
     const { shopItems, activeJokers, coins, comboLevels, deck, squad } = get()
     const item = shopItems[itemIndex]
@@ -678,6 +744,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       shopJokers: [],
       shopItems: [],
       lastScoringResult: null,
+      managerProgress: null,
+      lastUnlockedGW: null,
     })
   },
 }))

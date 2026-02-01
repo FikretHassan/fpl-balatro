@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { ManagerCard, ManagerCardRarity } from '@/types/game'
+import { JOKER_SELL_PRICES } from '@/lib/game/constants'
 
 interface JokerDisplayProps {
   jokers: ManagerCard[]
+  onSell?: (jokerId: string) => void
 }
 
 const RARITY_STYLES: Record<ManagerCardRarity, { border: string; bg: string; text: string; glow: string }> = {
@@ -27,7 +29,7 @@ const EFFECT_BADGE: Record<ManagerCard['effectType'], { label: string; color: st
   mult_mult: { label: 'xMult', color: 'text-[var(--rarity-legendary)] bg-[var(--rarity-legendary)]/15' },
 }
 
-export default function JokerDisplay({ jokers }: JokerDisplayProps) {
+export default function JokerDisplay({ jokers, onSell }: JokerDisplayProps) {
   const [selected, setSelected] = useState<ManagerCard | null>(null)
 
   return (
@@ -37,7 +39,7 @@ export default function JokerDisplay({ jokers }: JokerDisplayProps) {
           const style = RARITY_STYLES[joker.rarity]
           const effect = EFFECT_BADGE[joker.effectType]
           return (
-            <button
+            <div
               key={joker.id}
               onClick={() => setSelected(joker)}
               className={`
@@ -61,7 +63,15 @@ export default function JokerDisplay({ jokers }: JokerDisplayProps) {
                   {effect.label}
                 </span>
               </div>
-            </button>
+              {onSell && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onSell(joker.id) }}
+                  className="mt-2 w-full text-[10px] font-semibold py-1 rounded bg-mult/15 text-mult hover:bg-mult/25 transition-colors"
+                >
+                  Sell ${JOKER_SELL_PRICES[joker.rarity] ?? 2}
+                </button>
+              )}
+            </div>
           )
         })}
       </div>
@@ -100,12 +110,22 @@ export default function JokerDisplay({ jokers }: JokerDisplayProps) {
                     <span className={`text-xs ${style.text} font-semibold capitalize`}>
                       {RARITY_LABEL[selected.rarity]}
                     </span>
-                    <button
-                      onClick={() => setSelected(null)}
-                      className="text-xs text-foreground/40 hover:text-foreground/60 transition-colors"
-                    >
-                      Close
-                    </button>
+                    <div className="flex items-center gap-3">
+                      {onSell && (
+                        <button
+                          onClick={() => { onSell(selected.id); setSelected(null) }}
+                          className="text-xs font-semibold px-3 py-1 rounded bg-mult/15 text-mult hover:bg-mult/25 transition-colors"
+                        >
+                          Sell ${JOKER_SELL_PRICES[selected.rarity] ?? 2}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setSelected(null)}
+                        className="text-xs text-foreground/40 hover:text-foreground/60 transition-colors"
+                      >
+                        Close
+                      </button>
+                    </div>
                   </div>
                 </>
               )

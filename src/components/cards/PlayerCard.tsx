@@ -86,7 +86,7 @@ export default function PlayerCard({
         )}
 
         {card.isCaptain && (
-          <div className="absolute top-0.5 right-0.5 w-3 h-3 rounded-full bg-accent flex items-center justify-center text-[7px] font-bold text-black">
+          <div className="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-accent flex items-center justify-center text-[7px] font-bold text-black">
             C
           </div>
         )}

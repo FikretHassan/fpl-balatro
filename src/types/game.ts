@@ -230,3 +230,26 @@ export type GamePhase =
   | 'boss_intro'
   | 'run_won'
   | 'run_lost'
+
+export type GameMode = 'roguelike' | 'free'
+
+// ============================================
+// Progress Tracking
+// ============================================
+
+export interface RunRecord {
+  gameweek: number
+  won: boolean
+  anteReached: number
+  blindReached: BlindType
+  finalScore: number
+  timestamp: number
+}
+
+export interface ManagerProgress {
+  managerId: string
+  managerName: string
+  teamName: string
+  unlockedGWs: number[]
+  runHistory: RunRecord[]
+}

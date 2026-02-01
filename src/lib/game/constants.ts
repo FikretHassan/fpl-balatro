@@ -24,12 +24,12 @@ export const REROLL_BASE_COST = 5
 export const SCORE_TARGETS: Record<number, Record<BlindType, number>> = {
   1: { small: 100, big: 200, boss: 350 },
   2: { small: 250, big: 450, boss: 800 },
-  3: { small: 500, big: 900, boss: 1600 },
-  4: { small: 1000, big: 1800, boss: 3200 },
-  5: { small: 2000, big: 3600, boss: 6400 },
-  6: { small: 4000, big: 7200, boss: 13000 },
-  7: { small: 8000, big: 14000, boss: 26000 },
-  8: { small: 16000, big: 28000, boss: 50000 },
+  3: { small: 450, big: 800, boss: 1400 },
+  4: { small: 800, big: 1500, boss: 2600 },
+  5: { small: 1400, big: 2600, boss: 4500 },
+  6: { small: 2500, big: 4500, boss: 8000 },
+  7: { small: 4500, big: 8000, boss: 15000 },
+  8: { small: 8000, big: 15000, boss: 28000 },
 }
 
 // Combo definitions — ordered by priority (highest first for detection)
@@ -40,28 +40,28 @@ export const COMBO_DEFINITIONS: ComboDefinition[] = [
     type: ComboType.POINT_FIVE_OF_A_KIND,
     name: 'Point Five of a Kind',
     description: '5 cards with identical GW points',
-    baseMult: 10,
+    baseMult: 12,
     tier: 'diamond',
   },
   {
     type: ComboType.FULL_SQUAD,
     name: 'Full Squad',
     description: '5 players from the same club',
-    baseMult: 8,
+    baseMult: 10,
     tier: 'diamond',
   },
   {
     type: ComboType.POINT_FOUR_OF_A_KIND,
     name: 'Point Four of a Kind',
     description: '4 cards with identical GW points',
-    baseMult: 7,
+    baseMult: 8,
     tier: 'diamond',
   },
   {
     type: ComboType.HAT_TRICK_HERO,
     name: 'Hat-Trick Hero',
     description: 'A player with 3+ goals',
-    baseMult: 6,
+    baseMult: 7,
     tier: 'diamond',
   },
   // Gold tier
@@ -69,35 +69,35 @@ export const COMBO_DEFINITIONS: ComboDefinition[] = [
     type: ComboType.FULL_HOUSE,
     name: 'Full House',
     description: 'A point pair + point three of a kind',
-    baseMult: 5,
+    baseMult: 6,
     tier: 'gold',
   },
   {
     type: ComboType.DREAM_TEAM,
     name: 'Dream Team',
     description: '2+ players in the GW Dream Team',
-    baseMult: 5,
+    baseMult: 6,
     tier: 'gold',
   },
   {
     type: ComboType.POINT_THREE_OF_A_KIND,
     name: 'Point Three of a Kind',
     description: '3 cards with identical GW points',
-    baseMult: 4,
+    baseMult: 5,
     tier: 'gold',
   },
   {
     type: ComboType.FORMATION,
     name: 'Formation',
     description: 'GK + DEF + MID + FWD in one hand',
-    baseMult: 4,
+    baseMult: 5,
     tier: 'gold',
   },
   {
     type: ComboType.STRIKE_FORCE,
     name: 'Strike Force',
     description: '2+ forwards who scored',
-    baseMult: 4,
+    baseMult: 5,
     tier: 'gold',
   },
   // Silver tier
@@ -173,7 +173,7 @@ export const COMBO_BY_TYPE: Record<ComboType, ComboDefinition> = Object.fromEntr
 ) as Record<ComboType, ComboDefinition>
 
 // Tactic card boost per level (mult only now)
-export const TACTIC_MULT_PER_LEVEL = 1
+export const TACTIC_MULT_PER_LEVEL = 2
 
 // League boss blind scaling: boss_target = opponent_gw_score × scaling_factor
 export const LEAGUE_BOSS_SCALING: Record<number, number> = {
@@ -240,3 +240,11 @@ export const TRANSFER_CARDS: TransferCard[] = [
 // Shop prices
 export const TACTIC_PRICE = 8
 export const TRANSFER_PRICE = 6
+
+// Joker sell prices by rarity
+export const JOKER_SELL_PRICES: Record<string, number> = {
+  common: 2,
+  uncommon: 3,
+  rare: 4,
+  legendary: 5,
+}
