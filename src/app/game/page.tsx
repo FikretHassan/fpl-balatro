@@ -436,8 +436,7 @@ export default function GamePage() {
                 <button
                   onClick={() => {
                     store.recordRunResult(false)
-                    store.resetGame()
-                    router.push('/')
+                    store.abandonRun()
                   }}
                   className="w-full py-2 rounded-lg text-xs font-semibold text-mult/70 hover:text-mult hover:bg-mult/10 transition-all"
                 >

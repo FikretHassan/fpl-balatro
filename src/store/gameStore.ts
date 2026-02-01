@@ -123,6 +123,7 @@ interface GameState {
   buyShopItem: (itemIndex: number) => void
   skipShop: () => void
   resumeRun: (saved: Record<string, unknown>) => void
+  abandonRun: () => void
   resetGame: () => void
 }
 
@@ -705,6 +706,34 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   resumeRun: (saved: Record<string, unknown>) => {
     set(saved as Partial<GameState>)
+  },
+
+  abandonRun: () => {
+    clearRun()
+    set({
+      phase: 'gw_select',
+      gameweek: 0,
+      currentAnte: 1,
+      currentBlind: 'small',
+      scoreTarget: 0,
+      currentScore: 0,
+      runScore: 0,
+      deck: [],
+      hand: [],
+      discardPile: [],
+      selectedIndices: [],
+      playsRemaining: MAX_PLAYS,
+      discardsRemaining: MAX_DISCARDS,
+      jokerPool: [],
+      activeJokers: [],
+      managerCards: [],
+      comboLevels: { ...initialComboLevels },
+      coins: 0,
+      shopJokers: [],
+      shopItems: [],
+      lastScoringResult: null,
+      lastUnlockedGW: null,
+    })
   },
 
   resetGame: () => {
