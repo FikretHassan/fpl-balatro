@@ -480,12 +480,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ currentScore: newScore })
 
     if (newScore >= scoreTarget) {
-      set({ phase: 'blind_complete' })
+      // Delay so the count-up animation can play before transitioning
+      setTimeout(() => set({ phase: 'blind_complete' }), 800)
       return
     }
 
     if (playsRemaining <= 0) {
-      set({ phase: 'run_lost' })
+      setTimeout(() => set({ phase: 'run_lost' }), 800)
       return
     }
 
