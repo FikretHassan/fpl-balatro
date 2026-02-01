@@ -35,11 +35,12 @@ export const SCORE_TARGETS: Record<number, Record<BlindType, number>> = {
 // Combo definitions — ordered by priority (highest first for detection)
 // No base chips — chips come purely from player GW points
 export const COMBO_DEFINITIONS: ComboDefinition[] = [
+  // Diamond tier
   {
-    type: ComboType.HAT_TRICK_HERO,
-    name: 'Hat-Trick Hero',
-    description: 'A player with 3+ goals',
-    baseMult: 6,
+    type: ComboType.POINT_FIVE_OF_A_KIND,
+    name: 'Point Five of a Kind',
+    description: '5 cards with identical GW points',
+    baseMult: 10,
     tier: 'diamond',
   },
   {
@@ -50,10 +51,39 @@ export const COMBO_DEFINITIONS: ComboDefinition[] = [
     tier: 'diamond',
   },
   {
+    type: ComboType.POINT_FOUR_OF_A_KIND,
+    name: 'Point Four of a Kind',
+    description: '4 cards with identical GW points',
+    baseMult: 7,
+    tier: 'diamond',
+  },
+  {
+    type: ComboType.HAT_TRICK_HERO,
+    name: 'Hat-Trick Hero',
+    description: 'A player with 3+ goals',
+    baseMult: 6,
+    tier: 'diamond',
+  },
+  // Gold tier
+  {
+    type: ComboType.FULL_HOUSE,
+    name: 'Full House',
+    description: 'A point pair + point three of a kind',
+    baseMult: 5,
+    tier: 'gold',
+  },
+  {
     type: ComboType.DREAM_TEAM,
     name: 'Dream Team',
     description: '2+ players in the GW Dream Team',
     baseMult: 5,
+    tier: 'gold',
+  },
+  {
+    type: ComboType.POINT_THREE_OF_A_KIND,
+    name: 'Point Three of a Kind',
+    description: '3 cards with identical GW points',
+    baseMult: 4,
     tier: 'gold',
   },
   {
@@ -69,6 +99,14 @@ export const COMBO_DEFINITIONS: ComboDefinition[] = [
     description: '2+ forwards who scored',
     baseMult: 4,
     tier: 'gold',
+  },
+  // Silver tier
+  {
+    type: ComboType.TWO_PAIR,
+    name: 'Two Pair',
+    description: '2 different pairs of matching GW points',
+    baseMult: 3,
+    tier: 'silver',
   },
   {
     type: ComboType.CLEAN_SHEET_WALL,
@@ -90,6 +128,14 @@ export const COMBO_DEFINITIONS: ComboDefinition[] = [
     description: '3+ midfielders',
     baseMult: 3,
     tier: 'silver',
+  },
+  // Bronze tier
+  {
+    type: ComboType.POINT_PAIR,
+    name: 'Point Pair',
+    description: '2 cards with identical GW points',
+    baseMult: 2,
+    tier: 'bronze',
   },
   {
     type: ComboType.ASSIST_KINGS,

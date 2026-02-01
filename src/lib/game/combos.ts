@@ -84,6 +84,75 @@ function detectGoalThreat(cards: PlayerCard[]): PlayerCard[] | null {
   return scorers.length >= 2 ? scorers : null
 }
 
+// Helper: group cards by eventPoints value
+function groupByPoints(cards: PlayerCard[]): Map<number, PlayerCard[]> {
+  const groups = new Map<number, PlayerCard[]>()
+  for (const c of cards) {
+    const arr = groups.get(c.eventPoints) ?? []
+    arr.push(c)
+    groups.set(c.eventPoints, arr)
+  }
+  return groups
+}
+
+function detectPointFiveOfAKind(cards: PlayerCard[]): PlayerCard[] | null {
+  if (cards.length < 5) return null
+  for (const group of groupByPoints(cards).values()) {
+    if (group.length >= 5) return group.slice(0, 5)
+  }
+  return null
+}
+
+function detectPointFourOfAKind(cards: PlayerCard[]): PlayerCard[] | null {
+  if (cards.length < 4) return null
+  for (const group of groupByPoints(cards).values()) {
+    if (group.length >= 4) return group.slice(0, 4)
+  }
+  return null
+}
+
+function detectFullHouse(cards: PlayerCard[]): PlayerCard[] | null {
+  if (cards.length < 5) return null
+  const groups = groupByPoints(cards)
+  let threeGroup: PlayerCard[] | null = null
+  let pairGroup: PlayerCard[] | null = null
+  for (const group of groups.values()) {
+    if (!threeGroup && group.length >= 3) {
+      threeGroup = group.slice(0, 3)
+    } else if (!pairGroup && group.length >= 2) {
+      pairGroup = group.slice(0, 2)
+    }
+  }
+  if (threeGroup && pairGroup) return [...threeGroup, ...pairGroup]
+  return null
+}
+
+function detectPointThreeOfAKind(cards: PlayerCard[]): PlayerCard[] | null {
+  if (cards.length < 3) return null
+  for (const group of groupByPoints(cards).values()) {
+    if (group.length >= 3) return group.slice(0, 3)
+  }
+  return null
+}
+
+function detectTwoPair(cards: PlayerCard[]): PlayerCard[] | null {
+  if (cards.length < 4) return null
+  const pairs: PlayerCard[][] = []
+  for (const group of groupByPoints(cards).values()) {
+    if (group.length >= 2) pairs.push(group.slice(0, 2))
+    if (pairs.length >= 2) return [...pairs[0], ...pairs[1]]
+  }
+  return null
+}
+
+function detectPointPair(cards: PlayerCard[]): PlayerCard[] | null {
+  if (cards.length < 2) return null
+  for (const group of groupByPoints(cards).values()) {
+    if (group.length >= 2) return group.slice(0, 2)
+  }
+  return null
+}
+
 function detectPartnership(cards: PlayerCard[]): PlayerCard[] | null {
   if (cards.length < 2) return null
   const teamCounts = new Map<number, PlayerCard[]>()
@@ -100,14 +169,20 @@ function detectPartnership(cards: PlayerCard[]): PlayerCard[] | null {
 
 // Map combo types to detectors — order matches COMBO_DEFINITIONS priority
 const DETECTORS: Record<ComboType, ComboDetector> = {
-  [ComboType.HAT_TRICK_HERO]: detectHatTrickHero,
+  [ComboType.POINT_FIVE_OF_A_KIND]: detectPointFiveOfAKind,
   [ComboType.FULL_SQUAD]: detectFullSquad,
+  [ComboType.POINT_FOUR_OF_A_KIND]: detectPointFourOfAKind,
+  [ComboType.HAT_TRICK_HERO]: detectHatTrickHero,
+  [ComboType.FULL_HOUSE]: detectFullHouse,
   [ComboType.DREAM_TEAM]: detectDreamTeam,
+  [ComboType.POINT_THREE_OF_A_KIND]: detectPointThreeOfAKind,
   [ComboType.FORMATION]: detectFormation,
   [ComboType.STRIKE_FORCE]: detectStrikeForce,
+  [ComboType.TWO_PAIR]: detectTwoPair,
   [ComboType.CLEAN_SHEET_WALL]: detectCleanSheetWall,
   [ComboType.CLUB_TRIO]: detectClubTrio,
   [ComboType.MIDFIELD_ENGINE]: detectMidfieldEngine,
+  [ComboType.POINT_PAIR]: detectPointPair,
   [ComboType.ASSIST_KINGS]: detectAssistKings,
   [ComboType.GOAL_THREAT]: detectGoalThreat,
   [ComboType.PARTNERSHIP]: detectPartnership,

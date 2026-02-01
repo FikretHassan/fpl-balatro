@@ -128,6 +128,12 @@ const initialComboLevels: Record<ComboType, number> = {
   [ComboType.DREAM_TEAM]: 1,
   [ComboType.HAT_TRICK_HERO]: 1,
   [ComboType.FULL_SQUAD]: 1,
+  [ComboType.POINT_PAIR]: 1,
+  [ComboType.TWO_PAIR]: 1,
+  [ComboType.POINT_THREE_OF_A_KIND]: 1,
+  [ComboType.FULL_HOUSE]: 1,
+  [ComboType.POINT_FOUR_OF_A_KIND]: 1,
+  [ComboType.POINT_FIVE_OF_A_KIND]: 1,
 }
 
 function pickRandomJokers(pool: ManagerCard[], count: number, exclude: Set<string>): ManagerCard[] {
