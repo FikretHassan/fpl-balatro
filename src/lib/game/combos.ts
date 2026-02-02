@@ -219,18 +219,37 @@ export function detectBestCombo(cards: PlayerCard[]): ComboResult {
   }
 }
 
+// Point-based combos that overlap — only the best one should fire
+const POINT_COMBOS = new Set<ComboType>([
+  ComboType.POINT_PAIR,
+  ComboType.TWO_PAIR,
+  ComboType.POINT_THREE_OF_A_KIND,
+  ComboType.FULL_HOUSE,
+  ComboType.POINT_FOUR_OF_A_KIND,
+  ComboType.POINT_FIVE_OF_A_KIND,
+])
+
 /**
  * Detects ALL matching combos from played cards.
  * Returns them in priority order (highest tier first).
+ * Point-based combos (pair, three of a kind, etc.) don't stack —
+ * only the best one fires. FPL-specific combos stack freely.
  * BENCH_WARMER is excluded if any higher combo matches.
  */
 export function detectAllCombos(cards: PlayerCard[]): ComboResult[] {
   const results: ComboResult[] = []
+  let hasPointCombo = false
 
   for (const def of COMBO_DEFINITIONS) {
     const detector = DETECTORS[def.type]
     const matched = detector(cards)
     if (matched) {
+      // Only allow the first (best) point-based combo
+      if (POINT_COMBOS.has(def.type)) {
+        if (hasPointCombo) continue
+        hasPointCombo = true
+      }
+
       results.push({
         type: def.type,
         name: def.name,

@@ -177,6 +177,13 @@ export interface TransferCard {
   previewDetail?: string    // e.g. "→ MID" or "+5pts"
 }
 
+export interface TempEffect {
+  effectKey: string
+  cardId: string          // affected card's cardId
+  blindsRemaining: number
+  originalValue: number | string | boolean  // value to restore on expiry
+}
+
 // ============================================
 // League
 // ============================================

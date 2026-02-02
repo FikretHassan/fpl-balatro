@@ -235,6 +235,48 @@ export const TRANSFER_CARDS: TransferCard[] = [
     description: '+3 points to weakest card',
     effectKey: 'super_sub',
   },
+  {
+    id: 'goal_rush',
+    name: 'Goal Rush',
+    description: '+1 goal to a random player',
+    effectKey: 'add_goal',
+  },
+  {
+    id: 'assist_boost',
+    name: 'Assist Boost',
+    description: '+1 assist to a random player',
+    effectKey: 'add_assist',
+  },
+  {
+    id: 'clean_sheet',
+    name: 'Clean Sheet',
+    description: 'Grant clean sheet to a random DEF/GKP',
+    effectKey: 'add_clean_sheet',
+  },
+  {
+    id: 'dream_call',
+    name: 'Dream Team Call-Up',
+    description: 'Add a random player to the Dreamteam',
+    effectKey: 'add_dreamteam',
+  },
+  {
+    id: 'captain_arm',
+    name: "Captain's Armband",
+    description: "Double a random player's points",
+    effectKey: 'double_points',
+  },
+  {
+    id: 'team_spirit',
+    name: 'Team Spirit',
+    description: "Match a player's team to a teammate",
+    effectKey: 'match_team',
+  },
+  {
+    id: 'wildcard',
+    name: 'Wildcard',
+    description: 'Duplicate a random card in your deck',
+    effectKey: 'duplicate_card',
+  },
 ]
 
 // Shop prices

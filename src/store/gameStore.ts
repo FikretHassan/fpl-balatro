@@ -12,6 +12,7 @@ import {
   BossEffect,
   TacticCard,
   ManagerProgress,
+  TempEffect,
 } from '@/types/game'
 import { initProgress, recordRun, getNextUnlockGW } from '@/lib/progress'
 import { fetchBootstrap, fetchManagerPicks, fetchSquadGWStats, fetchManagerHistory, getFinishedGameweeks, fetchLeagueStandings, fetchLeagueOpponentsForGW } from '@/lib/fpl/api'
@@ -21,12 +22,14 @@ import { generateJokers } from '@/lib/game/jokers'
 import { shuffleDeck, dealHand, drawCards, getScoreTarget, advanceBlind, calculateReward, assignLeagueOpponents } from '@/lib/game/engine'
 import { detectBestCombo, detectAllCombos } from '@/lib/game/combos'
 import { calculateScore } from '@/lib/game/scoring'
-import { applyTransferEffect, preRollTransfer } from '@/lib/game/transfers'
+import { applyTransferEffect, preRollTransfer, revertTempEffect } from '@/lib/game/transfers'
 import { HAND_SIZE, MAX_PLAYS, MAX_DISCARDS, MAX_SELECTED, MAX_MANAGER_CARDS, BOSS_EFFECTS, COMBO_DEFINITIONS, TRANSFER_CARDS, TACTIC_PRICE, TRANSFER_PRICE, JOKER_SELL_PRICES } from '@/lib/game/constants'
 import { saveRun, clearRun } from '@/lib/persistence'
 
 const SHOP_JOKER_COUNT = 3
 const JOKER_PRICE = 5
+const POWERFUL_TRANSFERS = new Set(['double_points', 'duplicate_card', 'match_team'])
+const TEMP_EFFECT_DURATION = 3 // blinds
 
 function generateRandomTactics(count: number): TacticCard[] {
   const combos = [...COMBO_DEFINITIONS].sort(() => Math.random() - 0.5).slice(0, count)
@@ -67,6 +70,7 @@ interface GameState {
   gameMode: GameMode
   managerProgress: ManagerProgress | null
   lastUnlockedGW: number | null  // set after a win unlocks a new GW
+  tempEffects: TempEffect[]
 
   // UI state
   phase: GamePhase
@@ -180,6 +184,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   gameMode: 'roguelike' as GameMode,
   managerProgress: null,
   lastUnlockedGW: null,
+  tempEffects: [],
 
   // UI
   phase: 'loading',
@@ -301,6 +306,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         cachedBootstrap: bootstrap,
         managerProgress: progress,
         lastUnlockedGW: null,
+  tempEffects: [],
         isLoading: false,
         phase: 'gw_select',
       })
@@ -584,12 +590,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     const tactics = generateRandomTactics(1)
     const { squad } = get()
     const transferPool = [...TRANSFER_CARDS].sort(() => Math.random() - 0.5)
-    const transfer = preRollTransfer(transferPool[0], squad)
+    const transfers = transferPool.slice(0, 2).map((t) => preRollTransfer(t, squad))
 
     const shopItems: ShopItem[] = [
       ...shopJokers.map((j) => ({ type: 'manager' as const, card: j, price: JOKER_PRICE })),
       ...tactics.map((t) => ({ type: 'tactic' as const, card: t, price: TACTIC_PRICE })),
-      { type: 'transfer' as const, card: transfer, price: TRANSFER_PRICE },
+      ...transfers.map((t) => ({ type: 'transfer' as const, card: t, price: TRANSFER_PRICE })),
     ]
 
     set({
@@ -660,11 +666,39 @@ export const useGameStore = create<GameState>((set, get) => ({
         coins: coins - item.price,
       })
     } else if (item.type === 'transfer') {
+      const { tempEffects } = get()
+      const isPowerful = POWERFUL_TRANSFERS.has(item.card.effectKey)
+
+      // Only one powerful transfer active at a time
+      if (isPowerful && tempEffects.some((e) => POWERFUL_TRANSFERS.has(e.effectKey))) return
+
       const newDeck = applyTransferEffect(deck, item.card)
       const newSquad = applyTransferEffect(squad, item.card)
+
+      // Track powerful transfers as temporary effects
+      let newTempEffects = [...tempEffects]
+      if (isPowerful && item.card.previewCardId) {
+        const targetCard = deck.find((c) => c.cardId === item.card.previewCardId)
+        let originalValue: number | string | boolean = 0
+        if (item.card.effectKey === 'double_points' && targetCard) {
+          originalValue = targetCard.eventPoints
+        } else if (item.card.effectKey === 'match_team' && targetCard) {
+          originalValue = targetCard.teamId
+        } else if (item.card.effectKey === 'duplicate_card') {
+          originalValue = `${item.card.previewCardId}-dup-`  // prefix to find the dup
+        }
+        newTempEffects.push({
+          effectKey: item.card.effectKey,
+          cardId: item.card.previewCardId,
+          blindsRemaining: TEMP_EFFECT_DURATION,
+          originalValue,
+        })
+      }
+
       set({
         deck: newDeck,
         squad: newSquad,
+        tempEffects: newTempEffects,
         shopItems: shopItems.filter((_, i) => i !== itemIndex),
         coins: coins - item.price,
       })
@@ -672,12 +706,24 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   skipShop: () => {
-    const { currentAnte, currentBlind, squad, assignedBossOpponents } = get()
+    const { currentAnte, currentBlind, squad, assignedBossOpponents, tempEffects } = get()
 
     const next = advanceBlind(currentAnte, currentBlind)
     if (!next) return
 
-    const shuffled = shuffleDeck(squad)
+    // Tick down temp effects and revert expired ones
+    let currentSquad = [...squad]
+    const remainingEffects: TempEffect[] = []
+    for (const effect of tempEffects) {
+      const newBlinds = effect.blindsRemaining - 1
+      if (newBlinds <= 0) {
+        currentSquad = revertTempEffect(currentSquad, effect)
+      } else {
+        remainingEffects.push({ ...effect, blindsRemaining: newBlinds })
+      }
+    }
+
+    const shuffled = shuffleDeck(currentSquad)
     const { hand, remaining } = dealHand(shuffled, HAND_SIZE)
 
     // Determine boss opponent and effect for boss blinds
@@ -694,12 +740,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       scoreTarget: getScoreTarget(next.ante, next.blind, bossOpponent),
       currentBossOpponent: bossOpponent,
       currentBossEffect: bossEffect,
+      squad: currentSquad,
       deck: remaining,
       hand,
       discardPile: [],
       selectedIndices: [],
       playsRemaining: MAX_PLAYS,
       discardsRemaining: MAX_DISCARDS,
+      tempEffects: remainingEffects,
       phase: 'playing',
     })
   },
@@ -733,6 +781,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       shopItems: [],
       lastScoringResult: null,
       lastUnlockedGW: null,
+  tempEffects: [],
     })
   },
 
@@ -778,6 +827,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       lastScoringResult: null,
       managerProgress: null,
       lastUnlockedGW: null,
+  tempEffects: [],
     })
   },
 }))
